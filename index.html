@@ -1,0 +1,113 @@
+Пример формы регистрации разработчика
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Форма регистрации разработчика</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 20px;
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+        }
+        form {
+            max-width: 600px;
+            margin: auto;
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0,0,0,.1);
+            padding: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            color: #555;
+        }
+        input[type=text], input[type=tel], input[type=email], input[type=date], select, textarea {
+            width: calc(100% - 22px); /* Учитываем отступ */
+            height: 40px;
+            padding: 10px;
+            margin-bottom: 15px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+        .radio-group label {
+            display: inline-block;
+            margin-right: 15px;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            cursor: pointer;
+            border-radius: 5px;
+            transition: all 0.3s ease-in-out;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+<body>
+<h1>Регистрация разработчика</h1>
+<form action="#" method="post">
+    <!-- Поле ФИО -->
+    <label for="fullName">ФИО:</label>
+    <input type="text" id="fullName" name="fullName" required placeholder="Фамилия Имя Отчество">
+    
+    <!-- Поле телефон -->
+    <label for="phoneNumber">Телефон:</label>
+    <input type="tel" id="phoneNumber" name="phoneNumber" pattern="[\+]?\d{1,4}[\s\-]?\(?\d{3}\)?[\s\-]?\d{3}[\s\-]?\d{4}" required placeholder="+7 (XXX) XXX-XXXX">
+    
+    <!-- Поле E-mail -->
+    <label for="emailAddress">E-mail:</label>
+    <input type="email" id="emailAddress" name="emailAddress" required placeholder="example@example.com">
+    
+    <!-- Дата рождения -->
+    <label for="birthDate">Дата рождения:</label>
+    <input type="date" id="birthDate" name="birthDate" required>
+    
+    <!-- Пол -->
+    <div class="radio-group">
+        <label><input type="radio" name="gender" value="Мужской" checked> Мужской</label>
+        <label><input type="radio" name="gender" value="Женский"> Женский</label>
+    </div>
+    
+    <!-- Любимый язык программирования -->
+    <label for="favoriteLanguage">Любимый язык программирования:</label>
+    <select multiple size="6" id="favoriteLanguage" name="favoriteLanguage[]">
+        <option value="Pascal">Pascal</option>
+        <option value="C">C</option>
+        <option value="C++">C++</option>
+        <option value="JavaScript">JavaScript</option>
+        <option value="PHP">PHP</option>
+        <option value="Python">Python</option>
+        <option value="Java">Java</option>
+        <option value="Haskell">Haskell</option>
+        <option value="Clojure">Clojure</option>
+        <option value="Prolog">Prolog</option>
+        <option value="Scala">Scala</option>
+        <option value="Go">Go</option>
+    </select>
+    
+    <!-- Биография -->
+    <label for="biography">Биография:</label>
+    <textarea id="biography" name="biography" rows="5"></textarea>
+    
+    <!-- Чекбокс согласия с условиями контракта -->
+    <label for="contractAgreement"><input type="checkbox" id="contractAgreement" name="contractAgreement" required> Я ознакомился(-лась) с условиями контракта.</label>
+    
+    <!-- Кнопка отправки формы
+
+
+-->
+    <button type="submit">Сохранить</button>
+</form>
+</body>
+</html>
