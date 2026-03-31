@@ -1,113 +1,67 @@
-Пример формы регистрации разработчика
 <!DOCTYPE html>
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <title>Форма регистрации разработчика</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            background-color: #f4f4f4;
-            margin: 0;
-            padding: 20px;
-        }
-        h1 {
-            color: #333;
-            text-align: center;
-        }
-        form {
-            max-width: 600px;
-            margin: auto;
-            background-color: white;
-            border-radius: 10px;
-            box-shadow: 0 0 10px rgba(0,0,0,.1);
-            padding: 20px;
-        }
-        label {
-            display: block;
-            margin-bottom: 5px;
-            color: #555;
-        }
-        input[type=text], input[type=tel], input[type=email], input[type=date], select, textarea {
-            width: calc(100% - 22px); /* Учитываем отступ */
-            height: 40px;
-            padding: 10px;
-            margin-bottom: 15px;
-            border: 1px solid #ccc;
-            border-radius: 5px;
-        }
-        .radio-group label {
-            display: inline-block;
-            margin-right: 15px;
-        }
-        button {
-            background-color: #007bff;
-            color: white;
-            border: none;
-            padding: 10px 20px;
-            cursor: pointer;
-            border-radius: 5px;
-            transition: all 0.3s ease-in-out;
-        }
-        button:hover {
-            background-color: #0056b3;
-        }
-    </style>
+    <title>Регистрационная форма</title>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
-<h1>Регистрация разработчика</h1>
-<form action="#" method="post">
-    <!-- Поле ФИО -->
-    <label for="fullName">ФИО:</label>
-    <input type="text" id="fullName" name="fullName" required placeholder="Фамилия Имя Отчество">
-    
-    <!-- Поле телефон -->
-    <label for="phoneNumber">Телефон:</label>
-    <input type="tel" id="phoneNumber" name="phoneNumber" pattern="[\+]?\d{1,4}[\s\-]?\(?\d{3}\)?[\s\-]?\d{3}[\s\-]?\d{4}" required placeholder="+7 (XXX) XXX-XXXX">
-    
-    <!-- Поле E-mail -->
-    <label for="emailAddress">E-mail:</label>
-    <input type="email" id="emailAddress" name="emailAddress" required placeholder="example@example.com">
-    
-    <!-- Дата рождения -->
-    <label for="birthDate">Дата рождения:</label>
-    <input type="date" id="birthDate" name="birthDate" required>
-    
-    <!-- Пол -->
-    <div class="radio-group">
-        <label><input type="radio" name="gender" value="Мужской" checked> Мужской</label>
-        <label><input type="radio" name="gender" value="Женский"> Женский</label>
-    </div>
-    
-    <!-- Любимый язык программирования -->
-    <label for="favoriteLanguage">Любимый язык программирования:</label>
-    <select multiple size="6" id="favoriteLanguage" name="favoriteLanguage[]">
-        <option value="Pascal">Pascal</option>
-        <option value="C">C</option>
-        <option value="C++">C++</option>
-        <option value="JavaScript">JavaScript</option>
-        <option value="PHP">PHP</option>
-        <option value="Python">Python</option>
-        <option value="Java">Java</option>
-        <option value="Haskell">Haskell</option>
-        <option value="Clojure">Clojure</option>
-        <option value="Prolog">Prolog</option>
-        <option value="Scala">Scala</option>
-        <option value="Go">Go</option>
-    </select>
-    
-    <!-- Биография -->
-    <label for="biography">Биография:</label>
-    <textarea id="biography" name="biography" rows="5"></textarea>
-    
-    <!-- Чекбокс согласия с условиями контракта -->
-    <label for="contractAgreement"><input type="checkbox" id="contractAgreement" name="contractAgreement" required> Я ознакомился(-лась) с условиями контракта.</label>
-    
-    <!-- Кнопка отправки формы
+<div class="container">
+    <h1>Анкета</h1>
 
+    <!-- Блок для вывода сообщений -->
+    <?php if (isset($_GET['error'])): ?>
+        <div class="error"><?= htmlspecialchars($_GET['error']) ?></div>
+    <?php endif; ?>
+    <?php if (isset($_GET['success'])): ?>
+        <div class="success"><?= htmlspecialchars($_GET['success']) ?></div>
+    <?php endif; ?>
 
--->
-    <button type="submit">Сохранить</button>
-</form>
+    <form action="process.php" method="post">
+        <label>ФИО:</label>
+        <input type="text" name="full_name" value="<?= htmlspecialchars($_GET['full_name'] ?? '') ?>" required>
+        <div class="note">Только буквы, пробелы, дефис, не более 150 символов</div>
+
+        <label>Телефон:</label>
+        <input type="tel" name="phone" value="<?= htmlspecialchars($_GET['phone'] ?? '') ?>" required>
+
+        <label>E-mail:</label>
+        <input type="email" name="email" value="<?= htmlspecialchars($_GET['email'] ?? '') ?>" required>
+
+        <label>Дата рождения:</label>
+        <input type="date" name="birth_date" value="<?= htmlspecialchars($_GET['birth_date'] ?? '') ?>" required>
+
+        <label>Пол:</label>
+        <div class="radio-group">
+            <label><input type="radio" name="gender" value="male" <?= (isset($_GET['gender']) && $_GET['gender'] === 'male') ? 'checked' : '' ?>> Мужской</label>
+            <label><input type="radio" name="gender" value="female" <?= (isset($_GET['gender']) && $_GET['gender'] === 'female') ? 'checked' : '' ?>> Женский</label>
+        </div>
+
+        <label>Любимый язык программирования (можно выбрать несколько):</label>
+        <select name="languages[]" multiple size="6">
+            <?php
+            // Подключаемся к БД для получения списка языков
+            require_once 'db.php'; // отдельный файл с настройками БД
+            $pdo = getDB();
+            $stmt = $pdo->query("SELECT id, name_language FROM language");
+            $languages = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            $selected = isset($_GET['languages']) ? explode(',', $_GET['languages']) : [];
+            foreach ($languages as $lang): ?>
+                <option value="<?= $lang['id'] ?>" <?= in_array($lang['id'], $selected) ? 'selected' : '' ?>>
+                    <?= htmlspecialchars($lang['name']) ?>
+                </option>
+            <?php endforeach; ?>
+        </select>
+
+        <label>Биография:</label>
+        <textarea name="bio" rows="5"><?= htmlspecialchars($_GET['bio'] ?? '') ?></textarea>
+
+        <div class="checkbox-group">
+            <label><input type="checkbox" name="contract_accepted" value="1" <?= isset($_GET['contract_accepted']) ? 'checked' : '' ?>> С контрактом ознакомлен(а)</label>
+        </div>
+
+        <button type="submit">Сохранить</button>
+    </form>
+</div>
 </body>
 </html>
