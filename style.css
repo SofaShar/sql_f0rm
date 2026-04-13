@@ -82,3 +82,25 @@ body {
         select[multiple] {
             height: 120px;
         }
+.has-error input,
+.has-error select,
+.has-error textarea {
+    border: 2px solid #e74c3c !important;
+    background-color: #fff0f0;
+}
+
+.error-msg {
+    color: #e74c3c;
+    font-size: 0.8rem;
+    margin-top: 5px;
+    display: block;
+}
+
+.errors {
+    background: #f8d7da;
+    color: #721c24;
+    border: 1px solid #f5c6cb;
+    border-radius: 4px;
+    padding: 10px 15px;
+    margin-bottom: 20px;
+}
