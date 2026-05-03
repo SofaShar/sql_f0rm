@@ -4,8 +4,8 @@ session_start();
 // ------ ПОДКЛЮЧЕНИЕ К БД ------
 $host = 'localhost';
 $dbname = 'form_db';
-$username = 'app_user';
-$password_db = 'strong_password'; // замените на ваш пароль
+$username = 'user1';
+$password_db = '123'; // замените на ваш пароль
 
 try {
     $pdo = new PDO("mysql:host=$host;dbname=$dbname;charset=utf8mb4", $username, $password_db);
