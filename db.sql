@@ -6,11 +6,14 @@ CREATE TABLE applications (
     full_name VARCHAR(150) NOT NULL,
     phone VARCHAR(20) NOT NULL,
     email VARCHAR(100) NOT NULL,
+    login VARCHAR(50) UNIQUE,
+    password_hash VARCHAR(255),
     birth_date DATE NOT NULL,
     gender ENUM('male', 'female') NOT NULL,
     biography TEXT,
     contract_agreed TINYINT(1) NOT NULL DEFAULT 0,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+
 ) ENGINE=InnoDB;
 
 -- Справочник языков программирования
