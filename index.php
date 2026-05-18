@@ -1,313 +1,254 @@
 <?php
+<<<<<<< HEAD
 // Настройки подключения к БД
-$host = 'localhost';
-$dbname = 'form_db';
-$username = 'user1';
-$password = '123';
+require_once 'config.php';
+require_once 'functions.php';
 
-// Подключение PDO
-try {
-    $pdo = new PDO("mysql:host=$host;dbname=$dbname;charset=utf8mb4", $username, $password);
-    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-} catch (PDOException $e) {
-    die("Ошибка БД: " . $e->getMessage());
-}
-
-// Получаем список языков для select
-$languages = [];
-$stmt = $pdo->query("SELECT id, name FROM programming_languages ORDER BY name");
-while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
-    $languages[] = $row;
-}
-
-// Функция валидации
-function validateFormData($data, &$errors) {
-    // 1. ФИО: только буквы, пробелы, дефис, длина ≤ 150
-    if (empty($data['full_name'])) {
-        $errors['full_name'] = 'ФИО обязательно.';
-    } elseif (!preg_match('/^[a-zA-Zа-яА-ЯёЁ\s\-]+$/u', $data['full_name'])) {
-        $errors['full_name'] = 'ФИО может содержать только буквы, пробелы и дефис.';
-    } elseif (mb_strlen($data['full_name']) > 150) {
-        $errors['full_name'] = 'ФИО не длиннее 150 символов.';
-    }
-
-    // 2. Телефон: цифры, +, -, пробелы, длина 5-20
-    if (empty($data['phone'])) {
-        $errors['phone'] = 'Телефон обязателен.';
-    } elseif (!preg_match('/^[+\d\s\-]{5,20}$/', $data['phone'])) {
-        $errors['phone'] = 'Телефон: цифры, +, -, пробелы, 5-20 символов.';
-    }
-
-    // 3. Email
-    if (empty($data['email'])) {
-        $errors['email'] = 'Email обязателен.';
-    } elseif (!filter_var($data['email'], FILTER_VALIDATE_EMAIL)) {
-        $errors['email'] = 'Некорректный email.';
-    }
-
-    // 4. Дата рождения
-    if (empty($data['birth_date'])) {
-        $errors['birth_date'] = 'Дата рождения обязательна.';
-    } else {
-        $date = DateTime::createFromFormat('Y-m-d', $data['birth_date']);
-        if (!$date || $date->format('Y-m-d') !== $data['birth_date'] || $date > new DateTime()) {
-            $errors['birth_date'] = 'Некорректная или будущая дата.';
-        }
-    }
-
-    // 5. Пол
-    if (!in_array($data['gender'], ['male', 'female'])) {
-        $errors['gender'] = 'Выберите пол.';
-    }
-
-    // 6. Биография (макс 1000)
-    if (mb_strlen($data['biography']) > 1000) {
-        $errors['biography'] = 'Биография до 1000 символов.';
-    }
-
-    // 7. Контракт
-    if (empty($data['contract_agreed'])) {
-        $errors['contract_agreed'] = 'Подтвердите ознакомление с контрактом.';
-    }
-
-    // 8. Языки
-    $validLangIds = array_column($GLOBALS['languages'], 'id');
-    if (empty($data['languages'])) {
-        $errors['languages'] = 'Выберите хотя бы один язык.';
-    } else {
-        foreach ($data['languages'] as $langId) {
-            if (!in_array((int)$langId, $validLangIds)) {
-                $errors['languages'] = 'Недопустимый язык.';
-                break;
-            }
-        }
-    }
-}
-
-// Обработка GET-запроса (отправка формы)
-$successMessage = '';
+// Инициализация переменных
+$errors = [];
 $formData = [];
+$successMessage = '';
+$generatedLogin = '';
+$generatedPassword = '';
 
-if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['submit'])) {
-    $formData = [
-        'full_name' => trim($_GET['full_name'] ?? ''),
-        'phone' => trim($_GET['phone'] ?? ''),
-        'email' => trim($_GET['email'] ?? ''),
-        'birth_date' => trim($_GET['birth_date'] ?? ''),
-        'gender' => $_GET['gender'] ?? '',
-        'biography' => trim($_GET['biography'] ?? ''),
-        'contract_agreed' => isset($_GET['contract_agreed']),
-        'languages' => $_GET['languages'] ?? []
+// Получаем данные для предзаполнения (из Cookies или из сессии авторизованного пользователя)
+$isAuthorized = isset($_SESSION['user_id']);
+if ($isAuthorized) {
+    // Загружаем данные пользователя из БД
+    $stmt = $pdo->prepare("SELECT * FROM applications WHERE id = ?");
+    $stmt->execute([$_SESSION['user_id']]);
+    $userData = $stmt->fetch();
+    if ($userData) {
+        // Загружаем его языки
+        $langStmt = $pdo->prepare("SELECT pl.name FROM application_languages al JOIN programming_languages pl ON al.language_id = pl.id WHERE al.application_id = ?");
+        $langStmt->execute([$userData['id']]);
+        $userLanguages = $langStmt->fetchAll(PDO::FETCH_COLUMN);
+        $formData = [
+            'fullname' => $userData['fullname'],
+            'phone' => $userData['phone'],
+            'email' => $userData['email'],
+            'birthdate' => $userData['birthdate'],
+            'gender' => $userData['gender'],
+            'biography' => $userData['biography'],
+            'contract' => $userData['contract_accepted'],
+            'languages' => $userLanguages,
+        ];
+    } else {
+        $isAuthorized = false;
+        session_destroy();
+    }
+} else {
+    // Неавторизованный: загружаем данные из Cookies (если есть)
+    $formData = loadFromCookie();
+    // Восстанавливаем ошибки из Cookies (от предыдущей неудачной отправки)
+    $errors = loadErrorsAndClear();
+}
+
+// Обработка POST (отправка формы)
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit'])) {
+    // CSRF защита (задание 7)
+    if (!isset($_POST['csrf_token']) || $_POST['csrf_token'] !== $_SESSION['csrf_token']) {
+        die('CSRF токен неверен.');
+    }
+
+    // Собираем данные
+    $input = [
+        'fullname' => trim($_POST['fullname'] ?? ''),
+        'phone' => trim($_POST['phone'] ?? ''),
+        'email' => trim($_POST['email'] ?? ''),
+        'birthdate' => $_POST['birthdate'] ?? '',
+        'gender' => $_POST['gender'] ?? '',
+        'languages' => $_POST['languages'] ?? [],
+        'biography' => trim($_POST['biography'] ?? ''),
+        'contract' => $_POST['contract'] ?? '',
     ];
 
-    $errors = [];
-    validateFormData($formData, $errors);
-
-    if (empty($errors)) {
-        // Сохраняем в БД
+    $validationErrors = validateForm($input, $allowedLanguages, $allowedGenders);
+    
+    if (empty($validationErrors)) {
         try {
-            $pdo->beginTransaction();
-            $stmt = $pdo->prepare("
-                INSERT INTO applications (full_name, phone, email, birth_date, gender, biography, contract_agreed)
-                VALUES (:full_name, :phone, :email, :birth_date, :gender, :biography, :contract_agreed)
-            ");
-            $stmt->execute([
-                ':full_name' => $formData['full_name'],
-                ':phone' => $formData['phone'],
-                ':email' => $formData['email'],
-                ':birth_date' => $formData['birth_date'],
-                ':gender' => $formData['gender'],
-                ':biography' => $formData['biography'],
-                ':contract_agreed' => $formData['contract_agreed'] ? 1 : 0
-            ]);
-            $appId = $pdo->lastInsertId();
-
-            $stmtLang = $pdo->prepare("INSERT INTO application_languages (application_id, language_id) VALUES (:app_id, :lang_id)");
-            foreach ($formData['languages'] as $langId) {
-                $stmtLang->execute([':app_id' => $appId, ':lang_id' => $langId]);
+            // Если пользователь авторизован – обновляем его запись
+            if ($isAuthorized) {
+                $updateSql = "UPDATE applications SET fullname=?, phone=?, email=?, birthdate=?, gender=?, biography=?, contract_accepted=? WHERE id=?";
+                $stmt = $pdo->prepare($updateSql);
+                $stmt->execute([
+                    $input['fullname'], $input['phone'], $input['email'], $input['birthdate'],
+                    $input['gender'], $input['biography'], $input['contract'], $_SESSION['user_id']
+                ]);
+                // Обновляем языки: удаляем старые и вставляем новые
+                $pdo->prepare("DELETE FROM application_languages WHERE application_id = ?")->execute([$_SESSION['user_id']]);
+                $langStmt = $pdo->prepare("INSERT INTO application_languages (application_id, language_id) VALUES (?, (SELECT id FROM programming_languages WHERE name = ?))");
+                foreach ($input['languages'] as $lang) {
+                    $langStmt->execute([$_SESSION['user_id'], $lang]);
+                }
+                $successMessage = "Данные успешно обновлены!";
+                // Обновляем данные в сессии (не обязательно)
+            } else {
+                // Новая запись: генерируем логин и пароль
+                $login = generateLogin($input['email']);
+                $plainPassword = generatePassword();
+                $passwordHash = password_hash($plainPassword, PASSWORD_DEFAULT);
+                
+                $insertSql = "INSERT INTO applications (fullname, phone, email, birthdate, gender, biography, contract_accepted, login, password_hash) 
+                              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                $stmt = $pdo->prepare($insertSql);
+                $stmt->execute([
+                    $input['fullname'], $input['phone'], $input['email'], $input['birthdate'],
+                    $input['gender'], $input['biography'], $input['contract'], $login, $passwordHash
+                ]);
+                $applicationId = $pdo->lastInsertId();
+                
+                // Вставка языков
+                $langStmt = $pdo->prepare("INSERT INTO application_languages (application_id, language_id) VALUES (?, (SELECT id FROM programming_languages WHERE name = ?))");
+                foreach ($input['languages'] as $lang) {
+                    $langStmt->execute([$applicationId, $lang]);
+                }
+                
+                $successMessage = "Заявка сохранена! Ваш логин: $login, пароль: $plainPassword (сохраните их для редактирования).";
+                $generatedLogin = $login;
+                $generatedPassword = $plainPassword;
+                
+                // Сохраняем в Cookies (для неавторизованных) успешные данные на год
+                saveToCookie($input);
             }
-            $pdo->commit();
-
-            // Успех: сохраняем в Cookies на 1 год
-            setcookie('saved_full_name', $formData['full_name'], time() + 365*24*3600, '/');
-            setcookie('saved_phone', $formData['phone'], time() + 365*24*3600, '/');
-            setcookie('saved_email', $formData['email'], time() + 365*24*3600, '/');
-            setcookie('saved_birth_date', $formData['birth_date'], time() + 365*24*3600, '/');
-            setcookie('saved_gender', $formData['gender'], time() + 365*24*3600, '/');
-            setcookie('saved_biography', $formData['biography'], time() + 365*24*3600, '/');
-            setcookie('saved_languages', implode(',', $formData['languages']), time() + 365*24*3600, '/');
-            setcookie('saved_contract', $formData['contract_agreed'] ? '1' : '0', time() + 365*24*3600, '/');
-
-            // Очищаем Cookies ошибок
-            setcookie('form_errors', '', time() - 3600, '/');
-            setcookie('old_input', '', time() - 3600, '/');
-
-            $successMessage = 'Данные успешно сохранены!';
-            $formData = []; // очищаем для отображения формы
-        } catch (Exception $e) {
-            $pdo->rollBack();
-            $errors['db'] = 'Ошибка сохранения: ' . $e->getMessage();
-            // Сохраняем ошибки в Cookies
-            setcookie('form_errors', serialize($errors), time() + 3600, '/');
-            setcookie('old_input', serialize($formData), time() + 3600, '/');
-            header('Location: ' . strtok($_SERVER["REQUEST_URI"], '?'));
+            // Если был GET с ошибками – они уже удалены. Перенаправляем на ту же страницу, чтобы избежать повторной отправки.
+            header("Location: {$_SERVER['PHP_SELF']}?success=1");
             exit;
+        } catch (PDOException $e) {
+            $errors['general'] = "Ошибка базы данных: " . $e->getMessage();
         }
     } else {
-        // Сохраняем ошибки и введённые данные в Cookies
-        setcookie('form_errors', serialize($errors), time() + 3600, '/');
-        setcookie('old_input', serialize($formData), time() + 3600, '/');
-        header('Location: ' . strtok($_SERVER["REQUEST_URI"], '?'));
+        // Ошибки валидации – сохраняем в Cookies и перенаправляем GET (задание 4)
+        saveErrorsToCookie($validationErrors);
+        // Сохраняем введённые данные (кроме пароля) в сессию или в GET параметры? Но задание требует GET.
+        // Проще: закодировать данные в GET, но это громоздко. Используем временную сессию.
+        $_SESSION['old_input'] = $input;
+        header("Location: {$_SERVER['PHP_SELF']}");
         exit;
     }
 }
 
-// Чтение Cookies при загрузке страницы
-$errors = [];
-$oldInput = [];
-$hasErrors = false;
-
-if (isset($_COOKIE['form_errors'])) {
-    $errors = unserialize($_COOKIE['form_errors']);
-    $hasErrors = true;
-}
-if (isset($_COOKIE['old_input'])) {
-    $oldInput = unserialize($_COOKIE['old_input']);
+// Генерация CSRF токена
+if (empty($_SESSION['csrf_token'])) {
+    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
 }
 
-// Чтение сохранённых (успешных) Cookies для подстановки по умолчанию
-$savedCookies = [
-    'full_name' => $_COOKIE['saved_full_name'] ?? '',
-    'phone' => $_COOKIE['saved_phone'] ?? '',
-    'email' => $_COOKIE['saved_email'] ?? '',
-    'birth_date' => $_COOKIE['saved_birth_date'] ?? '',
-    'gender' => $_COOKIE['saved_gender'] ?? '',
-    'biography' => $_COOKIE['saved_biography'] ?? '',
-    'languages' => isset($_COOKIE['saved_languages']) ? explode(',', $_COOKIE['saved_languages']) : [],
-    'contract_agreed' => ($_COOKIE['saved_contract'] ?? '') === '1'
-];
-
-// Приоритет: старые введённые (при ошибке) > сохранённые cookies > пусто
-function getFieldValue($fieldName, $oldInput, $savedCookies) {
-    if (!empty($oldInput[$fieldName])) {
-        return htmlspecialchars($oldInput[$fieldName]);
-    }
-    return htmlspecialchars($savedCookies[$fieldName] ?? '');
+// Если GET с success – просто показываем сообщение из сессии (сохраним его в сессии)
+if (isset($_GET['success']) && !empty($successMessage)) {
+    // Ничего дополнительно не делаем, $successMessage уже установлена
 }
 
-function isFieldError($fieldName, $errors) {
-    return isset($errors[$fieldName]);
+// Восстановление старых данных из сессии после ошибки (для GET)
+if (isset($_SESSION['old_input']) && !$isAuthorized) {
+    $formData = array_merge($formData, $_SESSION['old_input']);
+    unset($_SESSION['old_input']);
 }
+
 ?>
 <!DOCTYPE html>
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <title>Анкета разработчика (с Cookies)</title>
-    <link rel="stylesheet" href="style.css">
+    <title>Анкета разработчика</title>
+    <style>
+        body { font-family: Arial, sans-serif; background: #f0f2f5; margin: 0; padding: 20px; }
+        .container { max-width: 800px; margin: 0 auto; background: white; padding: 25px; border-radius: 10px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+        h1 { text-align: center; color: #2c3e50; }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; font-weight: bold; margin-bottom: 5px; }
+        input[type="text"], input[type="tel"], input[type="email"], input[type="date"], textarea, select {
+            width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;
+        }
+        .radio-group label { display: inline-block; margin-right: 15px; font-weight: normal; }
+        .error { color: red; font-size: 0.9em; margin-top: 5px; }
+        .error-border { border: 1px solid red !important; }
+        .success { background: #d4edda; color: #155724; padding: 10px; border-radius: 5px; margin-bottom: 20px; }
+        button { background: #28a745; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; font-size: 16px; }
+        button:hover { background: #218838; }
+        .auth-info { text-align: right; margin-bottom: 20px; }
+        .auth-info a { margin-left: 10px; }
+    </style>
 </head>
 <body>
 <div class="container">
+    <div class="auth-info">
+        <?php if ($isAuthorized): ?>
+            Вы вошли как <?= h($formData['fullname'] ?? 'пользователь') ?> 
+            <a href="logout.php">Выйти</a>
+        <?php else: ?>
+            <a href="login.php">Вход для редактирования</a>
+        <?php endif; ?>
+    </div>
     <h1>Анкета разработчика</h1>
-
     <?php if ($successMessage): ?>
-        <div class="success"><?= $successMessage ?></div>
+        <div class="success"><?= nl2br(h($successMessage)) ?></div>
     <?php endif; ?>
-
-    <?php if ($hasErrors && !empty($errors)): ?>
-        <div class="errors">
-            <ul>
-                <?php foreach ($errors as $error): ?>
-                    <li><?= htmlspecialchars($error) ?></li>
-                <?php endforeach; ?>
-            </ul>
+    <?php if (!empty($errors)): ?>
+        <div class="error" style="background:#f8d7da; padding:10px; margin-bottom:15px;">
+            <strong>Исправьте ошибки:</strong><br>
+            <?php foreach ($errors as $err): ?>
+                - <?= h($err) ?><br>
+            <?php endforeach; ?>
         </div>
     <?php endif; ?>
-
-    <form method="get" action="">
-        <div class="form-group <?= isFieldError('full_name', $errors) ? 'has-error' : '' ?>">
-            <label>ФИО *</label>
-            <input type="text" name="full_name" value="<?= getFieldValue('full_name', $oldInput, $savedCookies) ?>">
-            <?php if (isFieldError('full_name', $errors)): ?>
-                <span class="error-msg"><?= htmlspecialchars($errors['full_name']) ?></span>
-            <?php endif; ?>
+    <form method="post" action="">
+        <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?>">
+        
+        <div class="form-group">
+            <label>ФИО:</label>
+            <input type="text" name="fullname" value="<?= h($formData['fullname'] ?? '') ?>" class="<?= isset($errors['fullname']) ? 'error-border' : '' ?>">
+            <?php if (isset($errors['fullname'])) echo '<div class="error">'.$errors['fullname'].'</div>'; ?>
         </div>
-
-        <div class="form-group <?= isFieldError('phone', $errors) ? 'has-error' : '' ?>">
-            <label>Телефон *</label>
-            <input type="tel" name="phone" value="<?= getFieldValue('phone', $oldInput, $savedCookies) ?>">
-            <?php if (isFieldError('phone', $errors)): ?>
-                <span class="error-msg"><?= htmlspecialchars($errors['phone']) ?></span>
-            <?php endif; ?>
+        
+        <div class="form-group">
+            <label>Телефон:</label>
+            <input type="tel" name="phone" value="<?= h($formData['phone'] ?? '') ?>" class="<?= isset($errors['phone']) ? 'error-border' : '' ?>">
+            <?php if (isset($errors['phone'])) echo '<div class="error">'.$errors['phone'].'</div>'; ?>
         </div>
-
-        <div class="form-group <?= isFieldError('email', $errors) ? 'has-error' : '' ?>">
-            <label>E-mail *</label>
-            <input type="email" name="email" value="<?= getFieldValue('email', $oldInput, $savedCookies) ?>">
-            <?php if (isFieldError('email', $errors)): ?>
-                <span class="error-msg"><?= htmlspecialchars($errors['email']) ?></span>
-            <?php endif; ?>
+        
+        <div class="form-group">
+            <label>Email:</label>
+            <input type="email" name="email" value="<?= h($formData['email'] ?? '') ?>" class="<?= isset($errors['email']) ? 'error-border' : '' ?>">
+            <?php if (isset($errors['email'])) echo '<div class="error">'.$errors['email'].'</div>'; ?>
         </div>
-
-        <div class="form-group <?= isFieldError('birth_date', $errors) ? 'has-error' : '' ?>">
-            <label>Дата рождения *</label>
-            <input type="date" name="birth_date" value="<?= getFieldValue('birth_date', $oldInput, $savedCookies) ?>">
-            <?php if (isFieldError('birth_date', $errors)): ?>
-                <span class="error-msg"><?= htmlspecialchars($errors['birth_date']) ?></span>
-            <?php endif; ?>
+        
+        <div class="form-group">
+            <label>Дата рождения:</label>
+            <input type="date" name="birthdate" value="<?= h($formData['birthdate'] ?? '') ?>" class="<?= isset($errors['birthdate']) ? 'error-border' : '' ?>">
+            <?php if (isset($errors['birthdate'])) echo '<div class="error">'.$errors['birthdate'].'</div>'; ?>
         </div>
-
-        <div class="form-group <?= isFieldError('gender', $errors) ? 'has-error' : '' ?>">
-            <label>Пол *</label>
+        
+        <div class="form-group">
+            <label>Пол:</label>
             <div class="radio-group">
-                <label><input type="radio" name="gender" value="male" <?= (getFieldValue('gender', $oldInput, $savedCookies) === 'male') ? 'checked' : '' ?>> Мужской</label>
-                <label><input type="radio" name="gender" value="female" <?= (getFieldValue('gender', $oldInput, $savedCookies) === 'female') ? 'checked' : '' ?>> Женский</label>
+                <label><input type="radio" name="gender" value="male" <?= (($formData['gender'] ?? '') == 'male') ? 'checked' : '' ?>> Мужской</label>
+                <label><input type="radio" name="gender" value="female" <?= (($formData['gender'] ?? '') == 'female') ? 'checked' : '' ?>> Женский</label>
+                <label><input type="radio" name="gender" value="other" <?= (($formData['gender'] ?? '') == 'other') ? 'checked' : '' ?>> Другой</label>
             </div>
-            <?php if (isFieldError('gender', $errors)): ?>
-                <span class="error-msg"><?= htmlspecialchars($errors['gender']) ?></span>
-            <?php endif; ?>
+            <?php if (isset($errors['gender'])) echo '<div class="error">'.$errors['gender'].'</div>'; ?>
         </div>
-
-        <div class="form-group <?= isFieldError('languages', $errors) ? 'has-error' : '' ?>">
-            <label>Любимый язык * (можно несколько)</label>
+        
+        <div class="form-group">
+            <label>Любимые языки программирования (множественный выбор):</label>
             <select name="languages[]" multiple size="6">
-                <?php foreach ($languages as $lang): ?>
-                    <?php
-                    $selected = false;
-                    if (!empty($oldInput['languages']) && in_array($lang['id'], $oldInput['languages'])) {
-                        $selected = true;
-                    } elseif (empty($oldInput) && in_array($lang['id'], $savedCookies['languages'])) {
-                        $selected = true;
-                    }
-                    ?>
-                    <option value="<?= $lang['id'] ?>" <?= $selected ? 'selected' : '' ?>>
-                        <?= htmlspecialchars($lang['name']) ?>
-                    </option>
+                <?php foreach ($allowedLanguages as $lang): ?>
+                    <option value="<?= $lang ?>" <?= (isset($formData['languages']) && in_array($lang, $formData['languages'])) ? 'selected' : '' ?>><?= $lang ?></option>
                 <?php endforeach; ?>
             </select>
-            <?php if (isFieldError('languages', $errors)): ?>
-                <span class="error-msg"><?= htmlspecialchars($errors['languages']) ?></span>
-            <?php endif; ?>
+            <?php if (isset($errors['languages'])) echo '<div class="error">'.$errors['languages'].'</div>'; ?>
         </div>
-
-        <div class="form-group <?= isFieldError('biography', $errors) ? 'has-error' : '' ?>">
-            <label>Биография</label>
-            <textarea name="biography" rows="4"><?= getFieldValue('biography', $oldInput, $savedCookies) ?></textarea>
-            <?php if (isFieldError('biography', $errors)): ?>
-                <span class="error-msg"><?= htmlspecialchars($errors['biography']) ?></span>
-            <?php endif; ?>
+        
+        <div class="form-group">
+            <label>Биография:</label>
+            <textarea name="biography" rows="5" class="<?= isset($errors['biography']) ? 'error-border' : '' ?>"><?= h($formData['biography'] ?? '') ?></textarea>
+            <?php if (isset($errors['biography'])) echo '<div class="error">'.$errors['biography'].'</div>'; ?>
         </div>
-
-        <div class="form-group checkbox <?= isFieldError('contract_agreed', $errors) ? 'has-error' : '' ?>">
-            <label>
-                <input type="checkbox" name="contract_agreed" value="1" <?= (getFieldValue('contract_agreed', $oldInput, $savedCookies) == 1) ? 'checked' : '' ?>>
-                С контрактом ознакомлен(а) *
-            </label>
-            <?php if (isFieldError('contract_agreed', $errors)): ?>
-                <span class="error-msg"><?= htmlspecialchars($errors['contract_agreed']) ?></span>
-            <?php endif; ?>
+        
+        <div class="form-group">
+            <label><input type="checkbox" name="contract" value="1" <?= (!empty($formData['contract'])) ? 'checked' : '' ?>> Я ознакомлен(а) с контрактом</label>
+            <?php if (isset($errors['contract'])) echo '<div class="error">'.$errors['contract'].'</div>'; ?>
         </div>
-
+        
         <button type="submit" name="submit">Сохранить</button>
     </form>
 </div>

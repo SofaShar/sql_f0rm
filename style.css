@@ -1,106 +1,200 @@
+/* style.css – основные стили для всех страниц */
+
+* {
+    box-sizing: border-box;
+}
+
 body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #f4f4f4;
-            margin: 0;
-            padding: 20px;
-        }
-        .container {
-            max-width: 700px;
-            margin: 0 auto;
-            background: #fff;
-            padding: 20px 30px;
-            border-radius: 8px;
-            box-shadow: 0 0 10px rgba(0,0,0,0.1);
-        }
-        h1 {
-            text-align: center;
-            color: #333;
-        }
-        label {
-            font-weight: bold;
-            margin-top: 10px;
-            display: inline-block;
-        }
-        input[type="text"],
-        input[type="tel"],
-        input[type="email"],
-        input[type="date"],
-        textarea,
-        select {
-            width: 100%;
-            padding: 8px;
-            margin: 5px 0 10px;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-            box-sizing: border-box;
-        }
-        .radio-group {
-            margin: 5px 0 10px;
-        }
-        .radio-group label {
-            font-weight: normal;
-            margin-right: 15px;
-        }
-        .checkbox-group {
-            margin: 10px 0;
-        }
-        button {
-            background-color: #4CAF50;
-            color: white;
-            padding: 10px 20px;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            width: 100%;
-            font-size: 16px;
-        }
-        button:hover {
-            background-color: #45a049;
-        }
-        .error {
-            background-color: #f8d7da;
-            color: #721c24;
-            padding: 10px;
-            border-radius: 4px;
-            margin-bottom: 20px;
-            border: 1px solid #f5c6cb;
-        }
-        .success {
-            background-color: #d4edda;
-            color: #155724;
-            padding: 10px;
-            border-radius: 4px;
-            margin-bottom: 20px;
-            border: 1px solid #c3e6cb;
-        }
-        .note {
-            font-size: 0.9em;
-            color: #666;
-            margin-top: -8px;
-            margin-bottom: 10px;
-        }
-        select[multiple] {
-            height: 120px;
-        }
-.has-error input,
-.has-error select,
-.has-error textarea {
-    border: 2px solid #e74c3c !important;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: #e9ecef;
+    margin: 0;
+    padding: 20px;
+    color: #212529;
+}
+
+.container {
+    max-width: 900px;
+    margin: 0 auto;
+    background: white;
+    padding: 25px 30px;
+    border-radius: 12px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+}
+
+/* Заголовки */
+h1, h2 {
+    text-align: center;
+    color: #1e466e;
+    margin-bottom: 25px;
+}
+h2 {
+    font-size: 1.5rem;
+    margin-top: 30px;
+}
+
+/* Форма */
+.form-group {
+    margin-bottom: 20px;
+}
+label {
+    display: block;
+    font-weight: 600;
+    margin-bottom: 6px;
+    color: #2c3e50;
+}
+input[type="text"],
+input[type="tel"],
+input[type="email"],
+input[type="date"],
+textarea,
+select {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid #ced4da;
+    border-radius: 6px;
+    font-size: 1rem;
+    transition: 0.2s;
+}
+input:focus,
+textarea:focus,
+select:focus {
+    border-color: #80bdff;
+    outline: 0;
+    box-shadow: 0 0 0 0.2rem rgba(0,123,255,0.25);
+}
+.radio-group label {
+    display: inline-block;
+    font-weight: normal;
+    margin-right: 20px;
+}
+textarea {
+    resize: vertical;
+}
+
+/* Ошибки */
+.error {
+    color: #dc3545;
+    font-size: 0.875rem;
+    margin-top: 5px;
+}
+.error-border {
+    border: 1px solid #dc3545 !important;
     background-color: #fff0f0;
 }
-
-.error-msg {
-    color: #e74c3c;
-    font-size: 0.8rem;
-    margin-top: 5px;
-    display: block;
+.error-summary {
+    background: #f8d7da;
+    border-left: 5px solid #dc3545;
+    padding: 12px 15px;
+    margin-bottom: 20px;
+    border-radius: 6px;
+    color: #721c24;
 }
 
-.errors {
-    background: #f8d7da;
-    color: #721c24;
-    border: 1px solid #f5c6cb;
-    border-radius: 4px;
-    padding: 10px 15px;
+/* Успешные сообщения */
+.success {
+    background: #d4edda;
+    border-left: 5px solid #28a745;
+    padding: 12px 15px;
     margin-bottom: 20px;
+    border-radius: 6px;
+    color: #155724;
+}
+
+/* Кнопки */
+button, .btn {
+    background: #007bff;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 6px;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: background 0.2s;
+    display: inline-block;
+    text-decoration: none;
+}
+button:hover, .btn:hover {
+    background: #0069d9;
+}
+.btn-danger {
+    background: #dc3545;
+}
+.btn-danger:hover {
+    background: #c82333;
+}
+.btn-secondary {
+    background: #6c757d;
+}
+.btn-secondary:hover {
+    background: #5a6268;
+}
+
+/* Админ-панель: таблица */
+.data-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 20px 0;
+}
+.data-table th, 
+.data-table td {
+    border: 1px solid #dee2e6;
+    padding: 10px;
+    text-align: left;
+}
+.data-table th {
+    background: #f1f3f5;
+    font-weight: 600;
+}
+.data-table tr:nth-child(even) {
+    background: #f8f9fa;
+}
+
+/* Статистика */
+.stats-list {
+    list-style: none;
+    padding: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px;
+    margin-bottom: 30px;
+}
+.stats-list li {
+    background: #e9ecef;
+    padding: 8px 15px;
+    border-radius: 20px;
+    font-size: 0.9rem;
+}
+.stats-list li strong {
+    color: #007bff;
+}
+
+/* Навигация (для admin, login) */
+.auth-info {
+    text-align: right;
+    margin-bottom: 20px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #dee2e6;
+}
+.auth-info a {
+    margin-left: 15px;
+    color: #007bff;
+    text-decoration: none;
+}
+.auth-info a:hover {
+    text-decoration: underline;
+}
+
+/* Адаптивность */
+@media (max-width: 640px) {
+    .container {
+        padding: 15px;
+    }
+    .radio-group label {
+        display: block;
+        margin-bottom: 5px;
+    }
+    .stats-list li {
+        width: 100%;
+        text-align: center;
+    }
 }
