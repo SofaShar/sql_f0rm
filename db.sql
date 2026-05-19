@@ -1,72 +1,61 @@
+-- setup_tables.sql
+-- Используем существующую базу данных
 USE form_db;
 
--- Таблица заявок
+-- Удаляем старые таблицы, если они есть (осторожно! данные будут потеряны)
+DROP TABLE IF EXISTS application_languages;
+DROP TABLE IF EXISTS applications;
+DROP TABLE IF EXISTS programming_languages;
+DROP TABLE IF EXISTS admin;
+
+-- Таблица 1: Языки программирования (справочник)
+CREATE TABLE programming_languages (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(50) NOT NULL UNIQUE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Заполняем языками
+INSERT INTO programming_languages (name) VALUES
+('Pascal'), ('C'), ('C++'), ('JavaScript'), ('PHP'),
+('Python'), ('Java'), ('Haskell'), ('Clojure'), 
+('Prolog'), ('Scala'), ('Go');
+
+-- Таблица 2: Основная таблица заявок
 CREATE TABLE applications (
-    id INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
-    full_name VARCHAR(150) NOT NULL,
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    fullname VARCHAR(150) NOT NULL,
     phone VARCHAR(20) NOT NULL,
     email VARCHAR(100) NOT NULL,
-    birth_date DATE NOT NULL,
-    gender ENUM('male', 'female') NOT NULL,
+    birthdate DATE NOT NULL,
+    gender ENUM('male', 'female', 'other') NOT NULL,
     biography TEXT,
-    contract_agreed TINYINT(1) NOT NULL DEFAULT 0,
+    contract_accepted TINYINT(1) NOT NULL DEFAULT 0,
+    login VARCHAR(100) UNIQUE,
+    password_hash VARCHAR(255),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-) ENGINE=InnoDB;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- Справочник языков программирования
-CREATE TABLE programming_languages (
-    id INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
-    name VARCHAR(50) NOT NULL UNIQUE
-) ENGINE=InnoDB;
-
--- Таблица связи (один ко многим)
+-- Таблица 3: Связь заявок и языков (один ко многим)
 CREATE TABLE application_languages (
     application_id INT UNSIGNED NOT NULL,
     language_id INT UNSIGNED NOT NULL,
     PRIMARY KEY (application_id, language_id),
     FOREIGN KEY (application_id) REFERENCES applications(id) ON DELETE CASCADE,
     FOREIGN KEY (language_id) REFERENCES programming_languages(id) ON DELETE CASCADE
-) ENGINE=InnoDB;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- Наполнение справочника языками
-INSERT INTO programming_languages (name) VALUES
-('Pascal'), ('C'), ('C++'), ('JavaScript'), ('PHP'), ('Python'),
-('Java'), ('Haskell'), ('Clojure'), ('Prolog'), ('Scala'), ('Go');
-/*CREATE TABLE application (
-  id int(10) unsigned NOT NULL AUTO_INCREMENT,
-  full_name varchar(150) NOT NULL DEFAULT '',
-  phone varchar(12) NOT NULL DEFAULT '',
-  email varchar(100) NOT NULL DEFAULT '',
-  birth_date DATE NOT NULL,
-  gender ENUM('male','fmale') NOT NULL,
-  bio TEXT,
-    contract_accepted TINYINT(1) NOT NULL DEFAULT 0,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  PRIMARY KEY (id)
-)ENGINE=InnoDB;;
--- Таблица заявок
+-- Таблица 4: Администратор
+CREATE TABLE admin (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    username VARCHAR(50) NOT NULL UNIQUE,
+    password_hash VARCHAR(255) NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
-CREATE TABLE language(
-  id int(10) unsigned NOT NULL AUTO_INCREMENT,
-  name_language varchar(50) NOT NULL DEFAULT '',
-  PRIMARY KEY (id)
-)ENGINE=InnoDB;;
--- Таблица языков программирования
+-- Добавляем администратора (пароль 'secret' в формате MySQL PASSWORD)
+INSERT INTO admin (username, password_hash) VALUES ('admin', PASSWORD('secret'));
 
--- Вставка допустимых языков
-INSERT INTO language (name_language) VALUES
-('Pascal'), ('C'), ('C++'), ('JavaScript'), ('PHP'), ('Python'),
-('Java'), ('Haskell'), ('Clojure'), ('Prolog'), ('Scala'), ('Go');
+-- Проверка: показать все таблицы
+SHOW TABLES;
 
-CREATE TABLE favorite_language(
-  id int(10) unsigned NOT NULL AUTO_INCREMENT,
-  id_application int(10) unsigned NOT NULL
-  id_language int(10) unsigned NOT NULL
-  PRIMARY KEY(id),
-  FOREIGN KEY(id_application) REFERENCES application(id) ON DELETE CASCADE,
-  FOREIGN KEY(id_language) REFERENCES language(id) ON DELETE CASCADE
-
-    FOREIGN KEY (language_id) REFERENCES programming_languages(id) ON DELETE CASCADE
-) ENGINE=InnoDB;
--- Таблица связей (один ко многим)
-*/
+-- Проверка: количество языков
+SELECT COUNT(*) AS total_languages FROM programming_languages;
