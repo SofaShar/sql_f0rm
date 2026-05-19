@@ -3,7 +3,7 @@
 $host = 'localhost';
 $dbname = 'form_db';        // ваша существующая база данных
 $username = 'user1';         // ваш существующий пользователь
-$password = 'ВАШ_ПАРОЛЬ';    // замените на реальный пароль user1
+$password = '123';    // замените на реальный пароль user1
 
 try {
     $pdo = new PDO("mysql:host=$host;dbname=$dbname;charset=utf8mb4", $username, $password);
